@@ -12,6 +12,7 @@
     3/12/12  diverted power calculation & transmission added
     4/12/12  manual power input added for testing
     10/12/12 high & low energy thresholds added to reduce flicker
+    12/10/13 PB added 3rd CT channel to determine diverted power                    // PB added line
 */
 
 //--------------------------------------------------------------------------------------------------
@@ -19,8 +20,10 @@
 #define VCAL 233.5  // calculated value is 230:9 for transformer x 11:1 for resistor divider = 281
 #define I1CAL 112.6 // calculated value is 100A:0.05A for transformer / 18 Ohms for resistor = 111.1
 #define I2CAL 94.8 // this is for CT2, the solar PV current transformer
+#define I3CAL 94.8                                                                         //PB added this line
 #define I1LEAD 5 // number of microseconds the CT1 input leads the voltage input by
 #define I2LEAD 5 // number of microseconds the CT2 input leads the voltage input by
+#define I3LEAD 5                                                                           //PB added this line
 #define POWERCORRECTION 0 // this value, in watts, may be used to compensate for the leakage from
                           //  voltage to current inputs, it only affects data sent to emonGLCD
 #define LOAD_POWER 2770 // power in watts (at 240V) of triac load for diverted power calculation
@@ -48,8 +51,10 @@
 #define V_RATIO ((VCAL * SUPPLY_VOLTS)/1024)
 #define I1_RATIO ((I1CAL * SUPPLY_VOLTS)/1024)
 #define I2_RATIO ((I2CAL * SUPPLY_VOLTS)/1024)
+#define I3_RATIO ((I3CAL * SUPPLY_VOLTS)/1024)                                             // PB added line
 #define I1PHASESHIFT (((I1LEAD+63)*256)/400) // phase shift in voltage to align to current samples
 #define I2PHASESHIFT (((I2LEAD+127)*256)/400) //  these are fractions (x256) of sample period
+#define I3PHASESHIFT (((I3LEAD+191)*256)/400)                                              // PB added line
 #define JOULES_PER_BUFFER_UNIT ((V_RATIO * I1_RATIO)/(SUPPLY_FREQUENCY*NUMSAMPLES))
 #define MAXAVAILABLEENERGY ((long)ENERGY_BUFFER_SIZE/JOULES_PER_BUFFER_UNIT)
 #define HIGHENERGYLEVEL ((long)BUFFER_HIGH_THRESHOLD/JOULES_PER_BUFFER_UNIT)
@@ -65,6 +70,7 @@
 #define VOLTSPIN 2
 #define CT1PIN 3
 #define CT2PIN 0
+#define CT3PIN 1                                                                          // PB added line
 #define LEDPIN 9
 #define SYNCPIN 6 // this output will be a 50Hz square wave locked to the 50Hz input
 #define SAMPPIN 5 // this output goes high each time an ADC conversion starts or completes
@@ -88,18 +94,19 @@
 #include <util/crc16.h>
 #include <OneWire.h>
 
-typedef struct { int power1, power2, power3, Vrms, temp; } PayloadTx;
+typedef struct { int power1, power2, power3, power4, Vrms, temp; } PayloadTx;             // PB added , power4
 PayloadTx emontx;
 
-int sampleV,sampleI1,sampleI2,numSamples;
-int voltsOffset=512,I1Offset=512,I2Offset=512; // start offsets at ADC centre
-float Vrms,I1rms,I2rms;
-long sumVsquared,sumI1squared,sumI2squared,sumP1,sumP2;
-long cycleVsquared,cycleI1squared,cycleI2squared,cycleP1,cycleP2;
-long totalVsquared,totalI1squared,totalI2squared,totalP1,totalP2;
+int sampleV,sampleI1,sampleI2,sampleI3,numSamples;                                        // PB added samplesI3,
+int voltsOffset=512,I1Offset=512,I2Offset=512,I3Offset=512; //start offsets at ADC centre // PB added ,I3Offset=512
+float Vrms,I1rms,I2rms,I3rms;                                                             // PB added ,I3rms
+long sumVsquared,sumI1squared,sumI2squared,sumI3squared,sumP1,sumP2,sumP3;                // PB added sumI3squared and sumP3
+long cycleVsquared,cycleI1squared,cycleI2squared,cycleI3squared,cycleP1,cycleP2,cycleP3;  // PB added cycleI3squared and cycleP3
+long totalVsquared,totalI1squared,totalI2squared,totalI3squared,totalP1,totalP2,totalP3;  // PB added totalI3squared and totalP3
 long sumTimerCount;
 float realPower1,apparentPower1,powerFactor1;
 float realPower2,apparentPower2,powerFactor2;
+float realPower3,apparentPower3,powerFactor3;    // PB added line
 float divertedPower;
 float frequency;
 word timerCount=TIMERTOP;
@@ -212,9 +219,9 @@ ISR(TIMER1_COMPA_vect)
 // ADC interrupt handler
 ISR(ADC_vect)
 {
-  static int newV,newI1,newI2;
+  static int newV,newI1,newI2,newI3;    // PB added newI3
   static int lastV;
-  static long fVoltsOffset=512L<<FILTERSHIFT,fI1Offset=512L<<FILTERSHIFT,fI2Offset=512L<<FILTERSHIFT;
+  static long fVoltsOffset=512L<<FILTERSHIFT,fI1Offset=512L<<FILTERSHIFT,fI2Offset=512L<<FILTERSHIFT,fI3Offset=512L<<FILTERSHIFT;    // PB added fI3Offset=512L<<FILTERSHIFT
   int result;
   long phaseShiftedV;
   
@@ -240,6 +247,8 @@ ISR(ADC_vect)
       sumP1+=(phaseShiftedV*newI1);
       phaseShiftedV=lastV+((((long)newV-lastV)*I2PHASESHIFT)>>8);
       sumP2+=(phaseShiftedV*newI2);
+      phaseShiftedV=lastV+((((long)newV-lastV)*I3PHASESHIFT)>>8);   // PB added line
+      sumP3+=(phaseShiftedV*newI3);                                 // PB added line
       break;
     case CT1PIN:
       ADMUX = _BV(REFS0) | CT2PIN; // start CT2 conversion
@@ -251,11 +260,20 @@ ISR(ADC_vect)
       I1Offset=(int)((fI1Offset+FILTERROUNDING)>>FILTERSHIFT);
       break;
     case CT2PIN:
+      ADMUX = _BV(REFS0) | CT3PIN; // start CT3 conversion          // PB added line
+      ADCSRA |= _BV(ADSC);                                          // PB added line
       sampleI2 = result;
       newI2=sampleI2-I2Offset;
       sumI2squared+=((long)newI2*newI2);
       fI2Offset += (sampleI2-I2Offset);
       I2Offset=(int)((fI2Offset+FILTERROUNDING)>>FILTERSHIFT);
+      break;                                                        // PB added line
+    case CT3PIN:                                                    // PB added line
+      sampleI3 = result;                                            // PB added line
+      newI3=sampleI3-I3Offset;                                      // PB added line
+      sumI3squared+=((long)newI3*newI3);                            // PB added line
+      fI3Offset += (sampleI3-I3Offset);                             // PB added line
+      I3Offset=(int)((fI3Offset+FILTERROUNDING)>>FILTERSHIFT);      // PB added line
       updatePLL(newV,lastV);
       break;
   }
@@ -303,15 +321,19 @@ void updatePLL(int newV, int lastV)
     cycleVsquared=sumVsquared;
     cycleI1squared=sumI1squared;
     cycleI2squared=sumI2squared;
+    cycleI3squared=sumI3squared;   // PB added line
     cycleP1=sumP1;
     cycleP2=sumP2;
+    cycleP3=sumP3;                 // PB added line
     divertedCycle=divertFlag;
     // and clear accumulators
     sumVsquared=0;
     sumI1squared=0;
     sumI2squared=0;
+    sumI3squared=0;                // PB added line
     sumP1=0;
     sumP2=0;
+    sumP3=0;                       // PB added line
     divertFlag=false;
     newCycle=true; // flag new cycle to outer loop
     if(manualPowerLevel) manualCycleCount++;
@@ -344,8 +366,10 @@ void addCycle()
   totalVsquared+=cycleVsquared;
   totalI1squared+=cycleI1squared;
   totalI2squared+=cycleI2squared;
+  totalI3squared+=cycleI3squared;    // PB added line
   totalP1+=cycleP1;
   totalP2+=cycleP2;
+  totalP3+=cycleP3;                  // PB added line
   numSamples+=NUMSAMPLES;
   sumTimerCount+=(timerCount+1); // for average frequency calculation
   availableEnergy-=cycleP1; // Solar energy is negative at this point
@@ -363,7 +387,7 @@ void calculateVIPF()
   Vrms = V_RATIO * sqrt(((float)totalVsquared)/numSamples); 
   I1rms = I1_RATIO * sqrt(((float)totalI1squared)/numSamples); 
   I2rms = I2_RATIO * sqrt(((float)totalI2squared)/numSamples); 
-
+  I3rms = I3_RATIO * sqrt(((float)totalI3squared)/numSamples);      // PB added line
   realPower1 = (V_RATIO * I1_RATIO * (float)totalP1)/numSamples;
   if(abs(realPower1)>POWERCORRECTION) realPower1-=POWERCORRECTION;
   apparentPower1 = Vrms * I1rms;
@@ -372,20 +396,28 @@ void calculateVIPF()
   if(abs(realPower2)>POWERCORRECTION) realPower2-=POWERCORRECTION;
   apparentPower2 = Vrms * I2rms;
   powerFactor2=abs(realPower2 / apparentPower2);
+  realPower3 = (V_RATIO * I3_RATIO * (float)totalP3)/numSamples;    // PB added line
+  if(abs(realPower3)>POWERCORRECTION) realPower3-=POWERCORRECTION;  // PB added line
+  apparentPower3 = Vrms * I3rms;                                    // PB added line
+  powerFactor3=abs(realPower3 / apparentPower3);                    // PB added line
   divertedPower=((float)divertedCycleCount*LOAD_POWER)/cycleCount;
   divertedPower=divertedPower*(Vrms/240)*(Vrms/240); // correct power for actual voltage
   frequency=((float)cycleCount*16000000)/(((float)sumTimerCount)*NUMSAMPLES);
 
   emontx.power1=(int)(realPower1+0.5);
   emontx.power2=(int)(realPower2+0.5);
-  emontx.power3=(int)(divertedPower+0.5);
+  emontx.power3=(int)(realPower3+0.5);        // PB added line
+  emontx.power4=(int)(divertedPower+0.5);     // PB changed power3 to power4
+
   emontx.Vrms=(int)(Vrms*100+0.5);
   
   totalVsquared=0;
   totalI1squared=0;
   totalI2squared=0;
+  totalI3squared=0;          // PB added line
   totalP1=0;
   totalP2=0;
+  totalP3=0;                 // PB added line
   numSamples=0;
   cycleCount=0;
   divertedCycleCount=0;
@@ -401,12 +433,16 @@ void sendResults()
   Serial.print(" ");
   Serial.print(I2Offset);
   Serial.print(" ");
+  Serial.print(I3Offset);    // PB added line
+  Serial.print(" ");         // PB added line
   Serial.print(Vrms);
   Serial.print(" ");
   Serial.print(realPower1);
   Serial.print(" ");
   Serial.print(realPower2);
   Serial.print(" ");
+  Serial.print(realPower3);  // PB added line
+  Serial.print(" ");         // PB added line
   Serial.print(divertedPower);
   Serial.print(" ");
   Serial.print(frequency);

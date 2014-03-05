@@ -17,16 +17,16 @@
 
 //--------------------------------------------------------------------------------------------------
 // constants which must be set for each system
-#define VCAL 233.5  // calculated value is 230:9 for transformer x 11:1 for resistor divider = 281
-#define I1CAL 112.6 // calculated value is 100A:0.05A for transformer / 18 Ohms for resistor = 111.1
-#define I2CAL 94.8 // this is for CT2, the solar PV current transformer
-#define I3CAL 94.8                                                                         //PB added this line
+#define VCAL  230.1  // calculated value is 230:9 for transformer x 11:1 for resistor divider = 281
+#define I1CAL 111.1  // calculated value is 100A:0.05A for transformer / 18 Ohms for resistor = 111.1
+#define I2CAL 111.1  // this is for CT2, the solar PV current transformer
+#define I3CAL 111.1                                                                         //PB added this line
 #define I1LEAD 5 // number of microseconds the CT1 input leads the voltage input by
 #define I2LEAD 5 // number of microseconds the CT2 input leads the voltage input by
 #define I3LEAD 5                                                                           //PB added this line
 #define POWERCORRECTION 0 // this value, in watts, may be used to compensate for the leakage from
                           //  voltage to current inputs, it only affects data sent to emonGLCD
-#define LOAD_POWER 2770 // power in watts (at 240V) of triac load for diverted power calculation
+#define LOAD_POWER 3000 // power in watts (at 240V) of triac load for diverted power calculation
 //#define LEDISLOCK // comment this out for LED pulsed during transmission
 //--------------------------------------------------------------------------------------------------
 

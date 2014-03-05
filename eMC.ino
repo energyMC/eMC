@@ -16,6 +16,12 @@
 */
 
 //--------------------------------------------------------------------------------------------------
+// RFM settings
+#define NODE_ID 10 //rfm12b node ID
+#define NET_ID 210 //rfm12b network ID
+//--------------------------------------------------------------------------------------------------
+
+//--------------------------------------------------------------------------------------------------
 // constants which must be set for each system
 #define VCAL  230.1  // calculated value is 230:9 for transformer x 11:1 for resistor divider = 281
 #define I1CAL 111.1  // calculated value is 100A:0.05A for transformer / 18 Ohms for resistor = 111.1
@@ -487,8 +493,8 @@ void rfm_send(byte *data, byte size)
       case 1:
       case 2: next=0xaa; txstate++; break;
       case 3: next=0x2d; txstate++; break;
-      case 4: next=0xd2; txstate++; break;
-      case 5: next=10; txstate++; break; // node ID
+      case 4: next=NET_ID; txstate++; break;  // network ID
+      case 5: next=NODE_ID; txstate++; break; // node ID
       case 6: next=size; txstate++; break;
       case 7: next=data[i++]; if(i==size) txstate++; break;
       case 8: next=(byte)crc; txstate++; break;

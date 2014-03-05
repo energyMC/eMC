@@ -21,9 +21,9 @@
 #define I1CAL 111.1  // calculated value is 100A:0.05A for transformer / 18 Ohms for resistor = 111.1
 #define I2CAL 111.1  // this is for CT2, the solar PV current transformer
 #define I3CAL 111.1                                                                         //PB added this line
-#define I1LEAD 5 // number of microseconds the CT1 input leads the voltage input by
-#define I2LEAD 5 // number of microseconds the CT2 input leads the voltage input by
-#define I3LEAD 5                                                                           //PB added this line
+#define I1LEAD 158 // number of microseconds the CT1 input leads the voltage input by
+#define I2LEAD 158 // number of microseconds the CT2 input leads the voltage input by
+#define I3LEAD 158                                                                           //PB added this line
 #define POWERCORRECTION 0 // this value, in watts, may be used to compensate for the leakage from
                           //  voltage to current inputs, it only affects data sent to emonGLCD
 #define LOAD_POWER 3000 // power in watts (at 240V) of triac load for diverted power calculation

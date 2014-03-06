@@ -19,6 +19,7 @@
 // RFM settings
 #define NODE_ID 10 //rfm12b node ID
 #define NET_ID 210 //rfm12b network ID
+#define I2C_ID 10  //I²C SMBus ID
 //--------------------------------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------------------------------
@@ -138,6 +139,8 @@ void setup()
   digitalWrite(TRIACPIN,LOW);
   pinMode (RFMSELPIN, OUTPUT);
   digitalWrite(RFMSELPIN,HIGH);
+  Wire.begin(I2C_ID);
+  Wire.onRequest(dataSend);
   manualPowerLevel=0;
   convertTemperature(); // start initial temperature conversion
   // start the SPI library:
@@ -538,3 +541,6 @@ int readTemperature()
   return result;
 }
 
+void dataSend(){ 
+  Wire.write((byte*)&emontx,sizeof emontx);   //respond with array as expected by master (correct no of bytes)
+}

@@ -100,7 +100,7 @@
 #include <util/crc16.h>
 #include <OneWire.h>
 
-typedef struct { int power1, power2, power3, power4, Vrms, temp; } PayloadTx;             // PB added , power4
+typedef struct { int Vrms, power1, power2, power3, temp; } PayloadTx;
 PayloadTx emontx;
 
 int sampleV,sampleI1,sampleI2,sampleI3,numSamples;                                        // PB added samplesI3,
@@ -413,7 +413,7 @@ void calculateVIPF()
   emontx.power1=(int)(realPower1+0.5);
   emontx.power2=(int)(realPower2+0.5);
   emontx.power3=(int)(realPower3+0.5);        // PB added line
-  emontx.power4=(int)(divertedPower+0.5);     // PB changed power3 to power4
+  //emontx.power4=(int)(divertedPower+0.5);     // PB changed power3 to power4
 
   emontx.Vrms=(int)(Vrms*100+0.5);
   

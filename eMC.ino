@@ -73,10 +73,10 @@
 
 //--------------------------------------------------------------------------------------------------
 // Arduino I/O pin useage
-#define VOLTSPIN 2
-#define CT1PIN 3
-#define CT2PIN 0
-#define CT3PIN 1                                                                          // PB added line
+#define VOLTSPIN 0
+#define CT1PIN 1
+#define CT2PIN 2
+#define CT3PIN 3                                                                          // PB added line
 #define LEDPIN 9
 #define SYNCPIN 6 // this output will be a 50Hz square wave locked to the 50Hz input
 #define SAMPPIN 5 // this output goes high each time an ADC conversion starts or completes

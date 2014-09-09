@@ -18,7 +18,7 @@
 //--------------------------------------------------------------------------------------------------
 // RFM settings
 #define NODE_ID 10 //rfm12b node ID
-#define NET_ID 210 //rfm12b network ID
+#define GROUP_ID 210 //rfm12b group ID
 //--------------------------------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------------------------------
@@ -493,7 +493,7 @@ void rfm_send(byte *data, byte size)
       case 1:
       case 2: next=0xaa; txstate++; break;
       case 3: next=0x2d; txstate++; break;
-      case 4: next=NET_ID; txstate++; break;  // network ID
+      case 4: next=GROUP_ID; txstate++; break;  // network ID
       case 5: next=NODE_ID; txstate++; break; // node ID
       case 6: next=size; txstate++; break;
       case 7: next=data[i++]; if(i==size) txstate++; break;
